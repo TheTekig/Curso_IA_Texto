@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IA na Prática — Jogos do Curso</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --card: #1a1a2e;
+    --card2: #16213e;
+    --accent: #7c3aed;
+    --accent2: #06b6d4;
+    --accent3: #10b981;
+    --accent4: #f59e0b;
+    --accent5: #ef4444;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #2d2d4e;
+    --success: #10b981;
+    --error: #ef4444;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: linear-gradient(135deg, #1a0533 0%, #0f0f1a 60%, #001a2e 100%);
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header .logo { font-size: 2rem; }
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  header p { color: var(--muted); font-size: 0.9rem; }
+
+  /* ===== HUB ===== */
+  #hub {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+  }
+  #hub h2 { font-size: 1.2rem; color: var(--muted); margin-bottom: 28px; text-align:center; }
+
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+  }
+
+  .module-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .module-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+  .module-card.m1::before { background: var(--accent); }
+  .module-card.m2::before { background: var(--accent2); }
+  .module-card.m3::before { background: var(--accent3); }
+  .module-card.m4::before { background: var(--accent4); }
+  .module-card.m5::before { background: var(--accent5); }
+
+  .module-card:hover:not(.locked) {
+    transform: translateY(-4px);
+    border-color: #444;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+  .module-card.locked { opacity: 0.55; cursor: default; }
+  .module-card.locked:hover { transform: none; }
+
+  .module-icon { font-size: 2.4rem; margin-bottom: 12px; }
+  .module-num { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; }
+  .module-title { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+  .module-game { font-size: 0.8rem; color: var(--muted); margin-bottom: 14px; }
+
+  .lock-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .unlock-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.15);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    color: var(--success);
+  }
+
+  /* ===== MODAL DESBLOQUEIO ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+  }
+  .modal-box h3 { font-size: 1.3rem; margin-bottom: 8px; }
+  .modal-box p { color: var(--muted); margin-bottom: 24px; font-size: 0.9rem; }
+  .modal-box input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-size: 1.1rem;
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  .modal-box input:focus { border-color: var(--accent); }
+  .modal-box input.error { border-color: var(--error); }
+  .modal-msg { font-size: 0.85rem; margin-bottom: 16px; min-height: 20px; color: var(--error); }
+  .btn { padding: 12px 28px; border-radius: 10px; border: none; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.2s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #6d28d9; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); margin-left: 8px; }
+  .btn-ghost:hover { color: var(--text); }
+
+  /* ===== GAME SCREEN ===== */
+  #game-screen {
+    display: none;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 28px 20px;
+  }
+  #game-screen.open { display: block; }
+
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); border-radius: 8px;
+    padding: 8px 16px; cursor: pointer; font-size: 0.85rem;
+    margin-bottom: 24px; transition: all 0.2s;
+  }
+  .back-btn:hover { color: var(--text); border-color: #555; }
+
+  .game-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .game-header .game-icon { font-size: 3rem; }
+  .game-header h2 { font-size: 1.6rem; font-weight: 700; margin: 8px 0 4px; }
+  .game-header p { color: var(--muted); font-size: 0.9rem; }
+
+  /* ===== QUIZ (M1) ===== */
+  .quiz-progress {
+    display: flex; gap: 6px; margin-bottom: 28px;
+  }
+  .quiz-progress span {
+    flex: 1; height: 4px; border-radius: 4px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .quiz-progress span.done { background: var(--accent); }
+  .quiz-progress span.current { background: var(--accent2); }
+
+  .quiz-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+  }
+  .quiz-q { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; line-height: 1.5; }
+  .quiz-options { display: grid; gap: 10px; }
+  .quiz-opt {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    text-align: left;
+    color: var(--text);
+    transition: all 0.2s;
+  }
+  .quiz-opt:hover:not(:disabled) { border-color: var(--accent); background: rgba(124,58,237,0.1); }
+  .quiz-opt.correct { border-color: var(--success); background: rgba(16,185,129,0.15); }
+  .quiz-opt.wrong { border-color: var(--error); background: rgba(239,68,68,0.1); }
+  .quiz-opt:disabled { cursor: default; }
+  .quiz-feedback { margin-top: 16px; font-size: 0.9rem; padding: 12px 16px; border-radius: 8px; display: none; }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.ok { background: rgba(16,185,129,0.15); color: var(--success); }
+  .quiz-feedback.nok { background: rgba(239,68,68,0.1); color: var(--error); }
+  .quiz-next { margin-top: 16px; display: none; }
+  .quiz-next.show { display: block; }
+  .quiz-score { text-align: center; padding: 40px 20px; }
+  .quiz-score .big { font-size: 4rem; font-weight: 800; }
+  .quiz-score p { color: var(--muted); margin: 8px 0 24px; }
+
+  /* ===== MATCH PAIRS (M2) ===== */
+  .match-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .match-col h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 12px; }
+  .match-item {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .match-item:hover { border-color: var(--accent2); }
+  .match-item.selected { border-color: var(--accent2); background: rgba(6,182,212,0.1); }
+  .match-item.matched { border-color: var(--success); background: rgba(16,185,129,0.1); opacity: 0.6; cursor: default; }
+  .match-item.wrong-flash { border-color: var(--error); background: rgba(239,68,68,0.1); }
+  .match-score-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .match-score-bar span { color: var(--muted); font-size: 0.9rem; }
+
+  /* ===== FILL BLANKS (M3) ===== */
+  .prompt-sentence {
+    font-size: 1rem;
+    line-height: 2.2;
+    margin-bottom: 20px;
+    background: var(--card);
+    padding: 20px 24px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .blank {
+    display: inline-block;
+    min-width: 120px;
+    border-bottom: 2px solid var(--accent2);
+    margin: 0 4px;
+    text-align: center;
+    padding: 2px 8px;
+    color: var(--accent2);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .blank.filled { color: var(--accent3); border-bottom-color: var(--accent3); }
+  .blank.correct-b { color: var(--success); border-bottom-color: var(--success); }
+  .blank.wrong-b { color: var(--error); border-bottom-color: var(--error); }
+  .word-bank { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
+  .word-chip {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  .word-chip:hover:not(.used) { border-color: var(--accent3); background: rgba(16,185,129,0.1); }
+  .word-chip.used { opacity: 0.35; cursor: default; }
+  .word-chip.selected-chip { border-color: var(--accent3); background: rgba(16,185,129,0.15); }
+
+  /* ===== SORT (M4) ===== */
+  .sort-instructions { color: var(--muted); font-size: 0.88rem; margin-bottom: 20px; }
+  .sort-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .sort-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: grab;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .sort-item:active { cursor: grabbing; }
+  .sort-item.dragging { opacity: 0.4; }
+  .sort-item.drag-over { border-color: var(--accent4); background: rgba(245,158,11,0.1); }
+  .sort-handle { color: var(--muted); font-size: 1rem; }
+  .sort-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700; flex-shrink: 0;
+  }
+  .sort-check-btn { margin-top: 20px; }
+
+  /* ===== TRUE FALSE (M5) ===== */
+  .tf-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    text-align: center;
+  }
+  .tf-statement { font-size: 1.05rem; font-weight: 600; line-height: 1.6; margin-bottom: 28px; }
+  .tf-buttons { display: flex; gap: 16px; justify-content: center; }
+  .tf-btn {
+    padding: 14px 40px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tf-true { background: rgba(16,185,129,0.15); color: var(--success); border-color: var(--success); }
+  .tf-true:hover:not(:disabled) { background: rgba(16,185,129,0.3); }
+  .tf-false { background: rgba(239,68,68,0.1); color: var(--error); border-color: var(--error); }
+  .tf-false:hover:not(:disabled) { background: rgba(239,68,68,0.2); }
+  .tf-btn:disabled { cursor: default; opacity: 0.6; }
+  .tf-feedback { margin-top: 20px; font-size: 0.92rem; padding: 12px 20px; border-radius: 8px; display: none; }
+  .tf-feedback.show { display: block; }
+  .tf-feedback.ok { background: rgba(16,185,129,0.15); color: var(--success); }
+  .tf-feedback.nok { background: rgba(239,68,68,0.1); color: var(--error); }
+  .tf-progress { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+  .tf-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--border); }
+  .tf-dot.ok { background: var(--success); }
+  .tf-dot.nok { background: var(--error); }
+
+  /* ===== RESULTADO FINAL ===== */
+  .result-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    text-align: center;
+  }
+  .result-emoji { font-size: 4rem; margin-bottom: 12px; }
+  .result-box h3 { font-size: 1.5rem; margin-bottom: 8px; }
+  .result-box p { color: var(--muted); margin-bottom: 24px; }
+  .stars { font-size: 2rem; margin-bottom: 16px; }
+
+  /* ===== UTILS ===== */
+  .text-center { text-align: center; }
+  .mt16 { margin-top: 16px; }
+  .mt24 { margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🤖</div>
+  <div>
+    <h1>IA na Prática</h1>
+    <p>Jogos educativos • 5 Módulos</p>
+  </div>
+</header>
+
+<!-- HUB -->
+<div id="hub">
+  <h2>Selecione um módulo para jogar</h2>
+  <div class="modules-grid" id="modules-grid"></div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <button class="back-btn" onclick="goHub()">← Voltar aos módulos</button>
+  <div id="game-container"></div>
+</div>
+
+<!-- MODAL UNLOCK -->
+<div class="modal-overlay" id="modal-unlock">
+  <div class="modal-box">
+    <div style="font-size:2.5rem;margin-bottom:12px">🔒</div>
+    <h3 id="modal-title">Módulo Bloqueado</h3>
+    <p id="modal-desc">Digite o código do curso para desbloquear este módulo.</p>
+    <input type="text" id="modal-input" placeholder="CÓDIGO" maxlength="10" oninput="clearModalError()" onkeydown="if(event.key==='Enter')tryUnlock()"/>
+    <div class="modal-msg" id="modal-msg"></div>
+    <button class="btn btn-primary" onclick="tryUnlock()">Desbloquear</button>
+    <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURAÇÃO DOS MÓDULOS
+// ============================================================
+const MODULES = [
+  {
+    id: 1,
+    cls: 'm1',
+    icon: '🧠',
+    num: 'Módulo 1',
+    title: 'Fundamentos de IA',
+    game: '🎯 Quiz de Múltipla Escolha',
+    code: 'IA2024',
+    color: '#7c3aed'
+  },
+  {
+    id: 2,
+    cls: 'm2',
+    icon: '🛠️',
+    num: 'Módulo 2',
+    title: 'Ferramentas de IA',
+    game: '🔗 Conecte os Pares',
+    code: 'TOOLS01',
+    color: '#06b6d4'
+  },
+  {
+    id: 3,
+    cls: 'm3',
+    icon: '✍️',
+    num: 'Módulo 3',
+    title: 'Prompt Engineering',
+    game: '📝 Complete o Prompt',
+    code: 'PROMPT3',
+    color: '#10b981'
+  },
+  {
+    id: 4,
+    cls: 'm4',
+    icon: '💼',
+    num: 'Módulo 4',
+    title: 'Aplicações Práticas',
+    game: '📋 Organize o Fluxo',
+    code: 'PRATICA',
+    color: '#f59e0b'
+  },
+  {
+    id: 5,
+    cls: 'm5',
+    icon: '⚖️',
+    num: 'Módulo 5',
+    title: 'Ética e Boas Práticas',
+    game: '✅ Verdadeiro ou Falso',
+    code: 'ETICA05',
+    color: '#ef4444'
+  }
+];
+
+// Estado
+let unlocked = JSON.parse(localStorage.getItem('ia_unlocked') || '[1]'); // M1 liberado por padrão
+let pendingUnlock = null;
+let currentGame = null;
+
+function saveUnlocked() {
+  localStorage.setItem('ia_unlocked', JSON.stringify(unlocked));
+}
+
+// ============================================================
+// HUB
+// ============================================================
+function renderHub() {
+  const grid = document.getElementById('modules-grid');
+  grid.innerHTML = '';
+  MODULES.forEach(m => {
+    const isUnlocked = unlocked.includes(m.id);
+    const card = document.createElement('div');
+    card.className = `module-card ${m.cls}${isUnlocked ? '' : ' locked'}`;
+    card.innerHTML = `
+      <div class="module-icon">${m.icon}</div>
+      <div class="module-num">${m.num}</div>
+      <div class="module-title">${m.title}</div>
+      <div class="module-game">${m.game}</div>
+      ${isUnlocked
+        ? `<span class="unlock-badge">✅ Desbloqueado</span>`
+        : `<span class="lock-badge">🔒 Inserir código</span>`}
+    `;
+    card.onclick = () => {
+      if (isUnlocked) startGame(m.id);
+      else openModal(m.id);
+    };
+    grid.appendChild(card);
+  });
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(moduleId) {
+  pendingUnlock = moduleId;
+  const m = MODULES.find(x => x.id === moduleId);
+  document.getElementById('modal-title').textContent = `🔒 ${m.title}`;
+  document.getElementById('modal-desc').textContent = `Digite o código fornecido no curso para desbloquear "${m.title}".`;
+  document.getElementById('modal-input').value = '';
+  document.getElementById('modal-msg').textContent = '';
+  document.getElementById('modal-input').classList.remove('error');
+  document.getElementById('modal-unlock').classList.add('open');
+  setTimeout(() => document.getElementById('modal-input').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modal-unlock').classList.remove('open');
+  pendingUnlock = null;
+}
+
+function clearModalError() {
+  document.getElementById('modal-msg').textContent = '';
+  document.getElementById('modal-input').classList.remove('error');
+}
+
+function tryUnlock() {
+  const val = document.getElementById('modal-input').value.trim().toUpperCase();
+  const m = MODULES.find(x => x.id === pendingUnlock);
+  if (val === m.code) {
+    if (!unlocked.includes(m.id)) { unlocked.push(m.id); saveUnlocked(); }
+    closeModal();
+    renderHub();
+    setTimeout(() => startGame(m.id), 300);
+  } else {
+    document.getElementById('modal-msg').textContent = '❌ Código incorreto. Verifique no material do curso.';
+    document.getElementById('modal-input').classList.add('error');
+  }
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+function goHub() {
+  document.getElementById('hub').style.display = 'block';
+  document.getElementById('game-screen').classList.remove('open');
+  currentGame = null;
+  renderHub();
+}
+
+function startGame(id) {
+  document.getElementById('hub').style.display = 'none';
+  const gs = document.getElementById('game-screen');
+  gs.classList.add('open');
+  const container = document.getElementById('game-container');
+  container.innerHTML = '';
+  if (id === 1) renderGame1(container);
+  else if (id === 2) renderGame2(container);
+  else if (id === 3) renderGame3(container);
+  else if (id === 4) renderGame4(container);
+  else if (id === 5) renderGame5(container);
+}
+
+// ============================================================
+// JOGO 1 — QUIZ MÚLTIPLA ESCOLHA (Fundamentos de IA)
+// ============================================================
+function renderGame1(el) {
+  const questions = [
+    { q: 'O que significa a sigla "IA"?', opts: ['Informação Analítica','Inteligência Artificial','Instrução Automatizada','Interface Avançada'], ans: 1 },
+    { q: 'Qual é a principal característica de um Modelo de Linguagem (LLM)?', opts: ['Controlar robôs físicos','Gerar e compreender texto com base em padrões','Armazenar arquivos na nuvem','Gerenciar bancos de dados SQL'], ans: 1 },
+    { q: 'Como a maioria dos LLMs aprende?', opts: ['Programação manual de regras','Treinamento com grandes volumes de texto','Interação exclusiva com humanos','Análise de imagens médicas'], ans: 1 },
+    { q: 'Qual exemplo NÃO é uma aplicação de IA no cotidiano?', opts: ['Recomendação do Netflix','Filtro de spam no e-mail','Calculadora de soma simples','Assistente virtual como Siri'], ans: 2 },
+    { q: 'O que é "alucinação" em IA generativa?', opts: ['Quando a IA faz arte psicodélica','Quando a IA gera informações falsas com confiança','Quando o servidor cai','Quando a IA demora para responder'], ans: 1 },
+    { q: 'Qual era o nome do famoso chatbot predecessor dos LLMs modernos, criado nos anos 60?', opts: ['CORTANA','WATSON','ELIZA','ALICE'], ans: 2 },
+    { q: 'O aprendizado de máquina (Machine Learning) é uma subárea de:', opts: ['Cibersegurança','Inteligência Artificial','Redes de Computadores','Programação Orientada a Objetos'], ans: 1 },
+  ];
+
+  let cur = 0, score = 0, answered = false;
+
+  function render() {
+    if (cur >= questions.length) {
+      showScore(); return;
+    }
+    const q = questions[cur];
+    el.innerHTML = `
+      <div class="game-header">
+        <div class="game-icon">🧠</div>
+        <h2>Fundamentos de IA</h2>
+        <p>Teste seus conhecimentos sobre IA e LLMs</p>
+      </div>
+      <div class="quiz-progress" id="qprog"></div>
+      <div class="quiz-card">
+        <div class="quiz-q">Pergunta ${cur+1} de ${questions.length}: ${q.q}</div>
+        <div class="quiz-options" id="qopts"></div>
+        <div class="quiz-feedback" id="qfb"></div>
+        <div class="quiz-next" id="qnext">
+          <button class="btn btn-primary" onclick="nextQ()">
+            ${cur === questions.length-1 ? 'Ver resultado →' : 'Próxima →'}
+          </button>
+        </div>
+      </div>
+    `;
+    // progress
+    const prog = document.getElementById('qprog');
+    questions.forEach((_,i) => {
+      const s = document.createElement('span');
+      if(i < cur) s.classList.add('done');
+      else if(i === cur) s.classList.add('current');
+      prog.appendChild(s);
+    });
+    // opções
+    const opts = document.getElementById('qopts');
+    q.opts.forEach((o,i) => {
+      const b = document.createElement('button');
+      b.className = 'quiz-opt'; b.textContent = o;
+      b.onclick = () => answer(i, q.ans, b);
+      opts.appendChild(b);
+    });
+    answered = false;
+  }
+
+  function answer(chosen, correct, btn) {
+    if (answered) return;
+    answered = true;
+    const allBtns = document.querySelectorAll('.quiz-opt');
+    allBtns.forEach(b => b.disabled = true);
+    const fb = document.getElementById('qfb');
+    const nx = document.getElementById('qnext');
+    if (chosen === correct) {
+      score++;
+      btn.classList.add('correct');
+      fb.className = 'quiz-feedback show ok';
+      fb.textContent = '✅ Correto! Muito bem!';
+    } else {
+      btn.classList.add('wrong');
+      allBtns[correct].classList.add('correct');
+      fb.className = 'quiz-feedback show nok';
+      fb.textContent = `❌ Incorreto. A resposta certa é: "${questions[cur].opts[correct]}"`;
+    }
+    nx.classList.add('show');
+  }
+
+  window.nextQ = () => { cur++; render(); };
+
+  function showScore() {
+    const pct = Math.round((score / questions.length) * 100);
+    const emoji = pct >= 80 ? '🏆' : pct >= 60 ? '🎯' : '📚';
+    const msg = pct >= 80 ? 'Excelente domínio dos fundamentos!' : pct >= 60 ? 'Bom resultado! Continue estudando.' : 'Continue revisando o módulo 1.';
+    el.innerHTML = `
+      <div class="game-header"><div class="game-icon">🧠</div><h2>Resultado Final</h2></div>
+      <div class="result-box">
+        <div class="result-emoji">${emoji}</div>
+        <div class="stars">${score >= 6 ? '⭐⭐⭐' : score >= 4 ? '⭐⭐' : '⭐'}</div>
+        <h3>${score} de ${questions.length} corretas</h3>
+        <p>${msg}</p>
+        <button class="btn btn-primary" onclick="startGame(1)">🔄 Jogar novamente</button>
+        <button class="btn btn-ghost" onclick="goHub()">🏠 Módulos</button>
+      </div>`;
+  }
+
+  render();
+}
+
+// ============================================================
+// JOGO 2 — CONECTE OS PARES (Ferramentas de IA)
+// ============================================================
+function renderGame2(el) {
+  const pairs = [
+    { tool: 'ChatGPT', desc: 'IA da OpenAI para conversas e textos' },
+    { tool: 'Claude', desc: 'Assistente da Anthropic, foco em segurança' },
+    { tool: 'Gemini', desc: 'Modelo multimodal do Google DeepMind' },
+    { tool: 'Copilot', desc: 'IA da Microsoft integrada ao Office' },
+    { tool: 'Midjourney', desc: 'Geração de imagens por texto' },
+    { tool: 'Perplexity', desc: 'Buscador com respostas geradas por IA' },
+  ];
+
+  let selectedTool = null, selectedDesc = null, matched = 0, errors = 0;
+  const shuffledDescs = [...pairs].sort(() => Math.random()-0.5);
+
+  function render() {
+    el.innerHTML = `
+      <div class="game-header">
+        <div class="game-icon">🛠️</div>
+        <h2>Ferramentas de IA</h2>
+        <p>Conecte cada ferramenta à sua descrição correta</p>
+      </div>
+      <div class="match-score-bar">
+        <span>✅ Pares: <b id="match-count">0</b>/${pairs.length}</span>
+        <span>❌ Erros: <b id="err-count">0</b></span>
+      </div>
+      <div class="match-grid">
+        <div>
+          <h4>Ferramentas</h4>
+          <div id="tools-col"></div>
+        </div>
+        <div>
+          <h4>Descrições</h4>
+          <div id="descs-col"></div>
+        </div>
+      </div>
+      <div id="match-result"></div>
+    `;
+    renderItems();
+  }
+
+  function renderItems() {
+    const tc = document.getElementById('tools-col');
+    const dc = document.getElementById('descs-col');
+    tc.innerHTML = ''; dc.innerHTML = '';
+
+    pairs.forEach(p => {
+      const d = document.createElement('div');
+      d.className = 'match-item';
+      d.dataset.tool = p.tool;
+      d.textContent = p.tool;
+      if (isMatched(p.tool)) { d.classList.add('matched'); }
+      else { d.onclick = () => selectTool(p.tool, d); }
+      if (selectedTool === p.tool) d.classList.add('selected');
+      tc.appendChild(d);
+    });
+
+    shuffledDescs.forEach(p => {
+      const d = document.createElement('div');
+      d.className = 'match-item';
+      d.dataset.desc = p.tool;
+      d.textContent = p.desc;
+      if (isMatched(p.tool)) { d.classList.add('matched'); }
+      else { d.onclick = () => selectDesc(p.tool, d); }
+      if (selectedDesc === p.tool) d.classList.add('selected');
+      dc.appendChild(d);
+    });
+
+    document.getElementById('match-count').textContent = matched;
+    document.getElementById('err-count').textContent = errors;
+  }
+
+  const matchedPairs = [];
+  function isMatched(key) { return matchedPairs.includes(key); }
+
+  function selectTool(tool, el) {
+    selectedTool = tool;
+    renderItems();
+    tryMatch();
+  }
+
+  function selectDesc(key, el) {
+    selectedDesc = key;
+    renderItems();
+    tryMatch();
+  }
+
+  function tryMatch() {
+    if (!selectedTool || !selectedDesc) return;
+    if (selectedTool === selectedDesc) {
+      matchedPairs.push(selectedTool);
+      matched++;
+      selectedTool = null; selectedDesc = null;
+      renderItems();
+      if (matched === pairs.length) showWin();
+    } else {
+      errors++;
+      // flash errado
+      document.querySelectorAll('.match-item.selected').forEach(i => {
+        i.classList.add('wrong-flash');
+        setTimeout(() => i.classList.remove('wrong-flash'), 600);
+      });
+      selectedTool = null; selectedDesc = null;
+      setTimeout(renderItems, 650);
+    }
+  }
+
+  function showWin() {
+    const stars = errors === 0 ? '⭐⭐⭐' : errors <= 3 ? '⭐⭐' : '⭐';
+    document.getElementById('match-result').innerHTML = `
+      <div class="result-box mt24">
+        <div class="result-emoji">🎉</div>
+        <div class="stars">${stars}</div>
+        <h3>Todos os pares encontrados!</h3>
+        <p>Erros: ${errors}</p>
+        <button class="btn btn-primary" onclick="startGame(2)">🔄 Jogar novamente</button>
+        <button class="btn btn-ghost" onclick="goHub()">🏠 Módulos</button>
+      </div>`;
+  }
+
+  render();
+}
+
+// ============================================================
+// JOGO 3 — COMPLETE O PROMPT (Prompt Engineering)
+// ============================================================
+function renderGame3(el) {
+  const exercises = [
+    {
+      template: 'Aja como um especialista em ___ e explique o conceito de machine learning de forma ___ para alguém sem conhecimento técnico.',
+      blanks: ['copywriter', 'simples'],
+      options: ['copywriter','professor','simples','técnica','avançada','médico'],
+      answers: ['professor','simples'],
+      tip: 'Definir um papel (persona) e o nível de linguagem são técnicas fundamentais de prompt.'
+    },
+    {
+      template: 'Liste 5 ___ de e-mails profissionais. Para cada um, inclua um ___ de assunto e o tom adequado.',
+      blanks: ['modelos', 'exemplo'],
+      options: ['modelos','ideias','exemplo','título','estilos','conteúdo'],
+      answers: ['modelos','exemplo'],
+      tip: 'Especificar o formato de saída (listas, tabelas) e quantidade melhora muito os resultados.'
+    },
+    {
+      template: 'Pense ___ antes de responder. Analise os prós e ___ da adoção de IA em pequenas empresas.',
+      blanks: ['passo a passo', 'contras'],
+      options: ['rápido','passo a passo','contras','mais','pouco','benefícios'],
+      answers: ['passo a passo','contras'],
+      tip: '"Pense passo a passo" é uma técnica de Chain-of-Thought que melhora o raciocínio da IA.'
+    },
+  ];
+
+  let curEx = 0, allCorrect = 0;
+
+  function renderEx() {
+    if (curEx >= exercises.length) { showFinal(); return; }
+    const ex = exercises[curEx];
+    const parts = ex.template.split('___');
+    let filledBlanks = new Array(ex.blanks.length).fill(null);
+    let activeBlank = 0;
+    let selectedChip = null;
+
+    function build() {
+      let html = '<div class="prompt-sentence">';
+      parts.forEach((part, i) => {
+        html += `<span>${part}</span>`;
+        if (i < parts.length - 1) {
+          const val = filledBlanks[i];
+          html += `<span class="blank${val?' filled':''}" data-blank="${i}">${val || ex.blanks[i]}</span>`;
+        }
+      });
+      html += '</div>';
+      html += '<div class="word-bank" id="word-bank"></div>';
+      html += '<div id="ex-feedback"></div>';
+      html += `<div class="mt16"><button class="btn btn-primary" id="check-btn" onclick="checkBlanks()">Verificar ✓</button></div>`;
+
+      el.innerHTML = `
+        <div class="game-header">
+          <div class="game-icon">✍️</div>
+          <h2>Prompt Engineering</h2>
+          <p>Complete os prompts com as melhores palavras</p>
+        </div>
+        <p style="color:var(--muted);font-size:.88rem;margin-bottom:16px">Exercício ${curEx+1} de ${exercises.length} — Clique em uma lacuna, depois escolha a palavra</p>
+        ${html}
+      `;
+
+      // blanks click
+      document.querySelectorAll('.blank').forEach(b => {
+        b.onclick = () => {
+          activeBlank = parseInt(b.dataset.blank);
+          document.querySelectorAll('.blank').forEach(x => x.style.outline='none');
+          b.style.outline = '2px solid var(--accent2)';
+          if (selectedChip !== null) {
+            placeWord(selectedChip);
+          }
+        };
+      });
+
+      // chips
+      const wb = document.getElementById('word-bank');
+      ex.options.forEach(opt => {
+        const chip = document.createElement('div');
+        chip.className = 'word-chip';
+        chip.textContent = opt;
+        chip.dataset.word = opt;
+        if (filledBlanks.includes(opt)) chip.classList.add('used');
+        chip.onclick = () => {
+          if (chip.classList.contains('used')) return;
+          document.querySelectorAll('.word-chip').forEach(c => c.classList.remove('selected-chip'));
+          chip.classList.add('selected-chip');
+          selectedChip = opt;
+          // auto fill if blank selected
+          document.querySelectorAll('.blank').forEach((b, i) => {
+            if (b.style.outline.includes('accent2')) {
+              placeWord(opt);
+            }
+          });
+        };
+        wb.appendChild(chip);
+      });
+    }
+
+    function placeWord(word) {
+      // remove from previous blank
+      const prev = filledBlanks.indexOf(word);
+      if (prev !== -1) filledBlanks[prev] = null;
+      // place
+      if (filledBlanks[activeBlank]) {
+        // return previous to bank
+      }
+      filledBlanks[activeBlank] = word;
+      selectedChip = null;
+      activeBlank = (activeBlank + 1) % ex.blanks.length;
+      build();
+      document.querySelectorAll('.blank')[activeBlank].style.outline = '2px solid var(--accent2)';
+    }
+
+    window.checkBlanks = () => {
+      let correct = 0;
+      const blanks = document.querySelectorAll('.blank');
+      blanks.forEach((b, i) => {
+        if (filledBlanks[i] === ex.answers[i]) {
+          correct++;
+          b.classList.add('correct-b');
+        } else {
+          b.classList.add('wrong-b');
+          b.textContent = `${filledBlanks[i] || '?'} (esperado: ${ex.answers[i]})`;
+        }
+      });
+      document.querySelectorAll('.word-chip').forEach(c => c.onclick = null);
+      document.getElementById('check-btn').disabled = true;
+      const fb = document.getElementById('ex-feedback');
+      if (correct === ex.answers.length) {
+        allCorrect++;
+        fb.innerHTML = `<div class="quiz-feedback show ok">✅ Perfeito! ${ex.tip}</div><button class="btn btn-primary mt16" onclick="nextEx()">Próximo →</button>`;
+      } else {
+        fb.innerHTML = `<div class="quiz-feedback show nok">❌ Quase! ${ex.tip}</div><button class="btn btn-primary mt16" onclick="nextEx()">Próximo →</button>`;
+      }
+    };
+
+    build();
+  }
+
+  window.nextEx = () => { curEx++; renderEx(); };
+
+  function showFinal() {
+    const stars = allCorrect === exercises.length ? '⭐⭐⭐' : allCorrect >= 2 ? '⭐⭐' : '⭐';
+    el.innerHTML = `
+      <div class="game-header"><div class="game-icon">✍️</div><h2>Resultado</h2></div>
+      <div class="result-box">
+        <div class="result-emoji">🚀</div>
+        <div class="stars">${stars}</div>
+        <h3>${allCorrect} de ${exercises.length} exercícios corretos</h3>
+        <p>Você praticou técnicas reais de prompt engineering!</p>
+        <button class="btn btn-primary" onclick="startGame(3)">🔄 Jogar novamente</button>
+        <button class="btn btn-ghost" onclick="goHub()">🏠 Módulos</button>
+      </div>`;
+  }
+
+  renderEx();
+}
+
+// ============================================================
+// JOGO 4 — ORGANIZE O FLUXO (Aplicações Práticas)
+// ============================================================
+function renderGame4(el) {
+  const tasks = [
+    {
+      title: 'Criar um relatório mensal com IA',
+      items: [
+        'Coletar os dados brutos do mês',
+        'Usar IA para analisar e resumir os dados',
+        'Revisar o texto gerado pela IA',
+        'Formatar no template da empresa',
+        'Enviar para aprovação do gestor',
+      ],
+      correct: [0,1,2,3,4]
+    },
+    {
+      title: 'Automatizar respostas de e-mail com IA',
+      items: [
+        'Testar com e-mails de exemplo',
+        'Criar templates de resposta no ChatGPT',
+        'Identificar tipos de e-mails repetitivos',
+        'Integrar ao cliente de e-mail',
+        'Monitorar qualidade das respostas',
+      ],
+      correct: [2,1,0,3,4]
+    },
+  ];
+
+  let curTask = 0;
+
+  function renderTask() {
+    if (curTask >= tasks.length) { showDone(); return; }
+    const task = tasks[curTask];
+    let order = [...task.items].sort(() => Math.random()-0.5);
+    let dragging = null;
+
+    function build() {
+      el.innerHTML = `
+        <div class="game-header">
+          <div class="game-icon">💼</div>
+          <h2>Aplicações Práticas</h2>
+          <p>Organize as etapas na ordem correta</p>
+        </div>
+        <p style="color:var(--muted);font-size:.88rem;margin-bottom:8px">Tarefa ${curTask+1} de ${tasks.length}</p>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px">
+          <b>${task.title}</b>
+        </div>
+        <p class="sort-instructions">⬆️⬇️ Arraste as etapas para colocá-las na ordem correta</p>
+        <ul class="sort-list" id="sort-list"></ul>
+        <button class="btn btn-primary sort-check-btn" onclick="checkOrder()">Verificar ordem ✓</button>
+        <div id="sort-fb"></div>
+      `;
+
+      const list = document.getElementById('sort-list');
+      order.forEach((item, i) => {
+        const li = document.createElement('li');
+        li.className = 'sort-item';
+        li.draggable = true;
+        li.dataset.idx = i;
+        li.innerHTML = `<span class="sort-handle">⠿</span><span class="sort-num">${i+1}</span><span>${item}</span>`;
+        li.addEventListener('dragstart', e => { dragging = li; setTimeout(() => li.classList.add('dragging'), 0); });
+        li.addEventListener('dragend', () => { li.classList.remove('dragging'); dragging = null; updateNums(); });
+        li.addEventListener('dragover', e => { e.preventDefault(); if(dragging && dragging !== li) { const rect = li.getBoundingClientRect(); const mid = rect.top + rect.height/2; if(e.clientY < mid) list.insertBefore(dragging, li); else li.after(dragging); updateNums(); }});
+        list.appendChild(li);
+      });
+    }
+
+    function updateNums() {
+      document.querySelectorAll('.sort-num').forEach((n,i) => n.textContent = i+1);
+    }
+
+    window.checkOrder = () => {
+      const items = Array.from(document.querySelectorAll('.sort-item span:last-child')).map(s => s.textContent);
+      const correctOrder = task.correct.map(i => task.items[i]);
+      let correct = true;
+      items.forEach((item, i) => { if(item !== correctOrder[i]) correct = false; });
+      const fb = document.getElementById('sort-fb');
+      if (correct) {
+        fb.innerHTML = `<div class="quiz-feedback show ok" style="margin-top:16px">✅ Ordem correta! Ótimo fluxo de trabalho!</div><button class="btn btn-primary mt16" onclick="nextTask()">Próxima tarefa →</button>`;
+      } else {
+        fb.innerHTML = `<div class="quiz-feedback show nok" style="margin-top:16px">❌ Não está na ordem ideal. A ordem correta seria:<br>${correctOrder.map((c,i)=>`${i+1}. ${c}`).join('<br>')}</div><button class="btn btn-primary mt16" onclick="nextTask()">Próxima tarefa →</button>`;
+      }
+      document.querySelector('.sort-check-btn').disabled = true;
+    };
+
+    build();
+  }
+
+  window.nextTask = () => { curTask++; renderTask(); };
+
+  function showDone() {
+    el.innerHTML = `
+      <div class="game-header"><div class="game-icon">💼</div><h2>Concluído!</h2></div>
+      <div class="result-box">
+        <div class="result-emoji">🏅</div>
+        <div class="stars">⭐⭐⭐</div>
+        <h3>Você organizou todos os fluxos!</h3>
+        <p>Saber sequenciar tarefas com IA é essencial para produtividade.</p>
+        <button class="btn btn-primary" onclick="startGame(4)">🔄 Jogar novamente</button>
+        <button class="btn btn-ghost" onclick="goHub()">🏠 Módulos</button>
+      </div>`;
+  }
+
+  renderTask();
+}
+
+// ============================================================
+// JOGO 5 — VERDADEIRO OU FALSO (Ética e Boas Práticas)
+// ============================================================
+function renderGame5(el) {
+  const statements = [
+    { s: 'A IA pode criar conteúdo com viés discriminatório se treinada com dados tendenciosos.', ans: true, exp: 'Correto! Dados de treinamento enviesados geram modelos com vieses, um dos principais riscos éticos.' },
+    { s: 'Posso usar IA para criar deepfakes de qualquer pessoa sem nenhuma restrição legal.', ans: false, exp: 'Falso! Deepfakes não autorizados podem violar leis de privacidade, imagem e difamação.' },
+    { s: 'Ao usar IA no trabalho, é boa prática revisar sempre o conteúdo gerado antes de publicar.', ans: true, exp: 'Correto! A revisão humana é fundamental — a IA pode cometer erros, alucinar ou gerar conteúdo inadequado.' },
+    { s: 'Dados pessoais de clientes podem ser inseridos livremente em ferramentas de IA públicas.', ans: false, exp: 'Falso! Dados pessoais podem violar LGPD/GDPR se inseridos em plataformas de terceiros sem consentimento.' },
+    { s: 'IA generativa é capaz de substituir completamente o julgamento humano em decisões críticas.', ans: false, exp: 'Falso! IA é uma ferramenta de apoio — decisões críticas exigem supervisão e responsabilidade humana.' },
+    { s: 'Citar que um texto foi parcialmente gerado por IA é uma boa prática de transparência.', ans: true, exp: 'Correto! A transparência sobre o uso de IA é um princípio ético fundamental.' },
+    { s: 'IA pode replicar e amplificar estereótipos presentes na sociedade através de seus outputs.', ans: true, exp: 'Correto! Modelos treinados em texto humano absorvem também os preconceitos presentes nesses textos.' },
+  ];
+
+  let cur = 0;
+  const results = [];
+
+  function render() {
+    if (cur >= statements.length) { showResult(); return; }
+    const st = statements[cur];
+    el.innerHTML = `
+      <div class="game-header">
+        <div class="game-icon">⚖️</div>
+        <h2>Ética e Boas Práticas</h2>
+        <p>Esta afirmação é verdadeira ou falsa?</p>
+      </div>
+      <div class="tf-progress" id="tf-prog"></div>
+      <div class="tf-card">
+        <p style="color:var(--muted);font-size:.82rem;margin-bottom:12px">Afirmação ${cur+1} de ${statements.length}</p>
+        <div class="tf-statement">"${st.s}"</div>
+        <div class="tf-buttons">
+          <button class="tf-btn tf-true" onclick="tfAnswer(true)">✅ Verdadeiro</button>
+          <button class="tf-btn tf-false" onclick="tfAnswer(false)">❌ Falso</button>
+        </div>
+        <div class="tf-feedback" id="tf-fb"></div>
+        <div id="tf-next" class="mt24" style="display:none">
+          <button class="btn btn-primary" onclick="tfNext()">
+            ${cur === statements.length-1 ? 'Ver resultado →' : 'Próxima →'}
+          </button>
+        </div>
+      </div>
+    `;
+    // dots
+    const prog = document.getElementById('tf-prog');
+    statements.forEach((_,i) => {
+      const d = document.createElement('div');
+      d.className = 'tf-dot';
+      if (i < cur) d.classList.add(results[i] ? 'ok' : 'nok');
+      prog.appendChild(d);
+    });
+  }
+
+  window.tfAnswer = (ans) => {
+    const st = statements[cur];
+    const correct = ans === st.ans;
+    results.push(correct);
+    document.querySelectorAll('.tf-btn').forEach(b => b.disabled = true);
+    const fb = document.getElementById('tf-fb');
+    fb.className = `tf-feedback show ${correct ? 'ok' : 'nok'}`;
+    fb.textContent = (correct ? '✅ ' : '❌ ') + st.exp;
+    document.getElementById('tf-next').style.display = 'block';
+  };
+
+  window.tfNext = () => { cur++; render(); };
+
+  function showResult() {
+    const score = results.filter(Boolean).length;
+    const stars = score >= 6 ? '⭐⭐⭐' : score >= 4 ? '⭐⭐' : '⭐';
+    const emoji = score >= 6 ? '🏆' : score >= 4 ? '🎯' : '📚';
+    el.innerHTML = `
+      <div class="game-header"><div class="game-icon">⚖️</div><h2>Resultado</h2></div>
+      <div class="result-box">
+        <div class="result-emoji">${emoji}</div>
+        <div class="stars">${stars}</div>
+        <h3>${score} de ${statements.length} corretas</h3>
+        <p>${score >= 6 ? 'Excelente senso ético sobre IA!' : 'Continue revisando o módulo de Ética.'}</p>
+        <button class="btn btn-primary" onclick="startGame(5)">🔄 Jogar novamente</button>
+        <button class="btn btn-ghost" onclick="goHub()">🏠 Módulos</button>
+      </div>`;
+  }
+
+  render();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+renderHub();
+</script>
+</body>
+</html>
